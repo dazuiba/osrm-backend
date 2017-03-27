@@ -74,8 +74,8 @@ function run_queries ()
 
     local result=()
     for ((i=0; i<num_queries; i++)) ; do
-        local json=$(curl -s ${queries[$i]})
-        result+=( "$(echo $json | jq '.routes[0].weight') $(echo $json | jq '.routes[0].distance')" )
+        local json=$(curl -w '{"time_total": %{time_total}}' -s ${queries[$i]})
+        result+=( "$(echo $json | jq '.routes[0].weight // empty') $(echo $json | jq '.routes[0].distance // empty') $(echo $json | jq '.time_total // empty')" )
     done
     kill -INT $(pstree $pid -p -a -l | cut -d, -f2 | cut -d' ' -f1)
     wait_for "shutdown completed"
@@ -107,21 +107,21 @@ done
 
 ## run tests
 ch_results=( $(run_queries ch) )
-ch_times=( $(get_times) )
+# ch_times=( $(get_times) )
 corech_results=( $(run_queries corech) )
-corech_times=( $(get_times) )
+# corech_times=( $(get_times) )
 mld_results=( $(run_queries mld) )
-mld_times=( $(get_times) )
+# mld_times=( $(get_times) )
 
 ## print results
 echo source_lon,source_lat,target_lon,target_lat,\
      ch_weight,ch_distance,ch_query_time,\
-     corech_weight,corech_distance,core_ch_query_time,\
+     corech_weight,corech_distance,corech_query_time,\
      mld_weight,mld_distance,mld_query_time | tr -d ' '
 
 for ((i=0; i<num_queries; i++)) ; do
     echo ${source_lon[i]},${source_lat[i]},${target_lon[i]},${target_lat[i]},\
-         ${ch_results[2*i]},${ch_results[2*i+1]},${ch_times[i]},\
-         ${corech_results[2*i]},${corech_results[2*i+1]},${corech_times[i]},\
-         ${mld_results[2*i]},${mld_results[2*i+1]},${mld_times[i]} | tr -d ' '
+         ${ch_results[3*i]},${ch_results[3*i+1]},${ch_results[3*i+2]},\
+         ${corech_results[3*i]},${corech_results[3*i+1]},${corech_results[3*i+2]},\
+         ${mld_results[3*i]},${mld_results[3*i+1]},${mld_results[3*i+2]} | tr -d ' '
 done
